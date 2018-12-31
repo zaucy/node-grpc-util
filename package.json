@@ -1,0 +1,29 @@
+{
+  "name": "grpc-util",
+  "version": "0.0.1",
+  "description": "",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "ava",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zaucy/node-grpc-util.git"
+  },
+  "author": "Ezekiel Warren",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zaucy/node-grpc-util/issues"
+  },
+  "homepage": "https://github.com/zaucy/node-grpc-util#readme",
+  "peerDependencies": {
+    "grpc": "^1.17.0"
+  },
+  "devDependencies": {
+    "ava": "^1.0.1",
+    "grpc": "^1.17.0",
+    "tsc-watch": "^1.0.31",
+    "typescript": "^3.2.2"
+  }
+}
