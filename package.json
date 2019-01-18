@@ -4,7 +4,6 @@
   "description": "",
   "main": "lib/index.js",
   "scripts": {
-    "test": "ava",
     "build": "tsc"
   },
   "repository": {
