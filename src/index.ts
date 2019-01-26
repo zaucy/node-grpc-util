@@ -1,4 +1,4 @@
-import { ServiceDefinition, ServerUnaryCall, sendUnaryData } from "grpc";
+import { ServiceDefinition, ServerUnaryCall, sendUnaryData, ServerWriteableStream } from "grpc";
 
 function catchGrpcPromiseUnaryError<T>
 	( serviceDef: ServiceDefinition<T>
@@ -63,7 +63,23 @@ function catchGrpcPromiseResponseStreamError<T>
 	, serviceImplCtor: new (...args: any[])=> T
 	)
 {
-	// @TODO: Implement response stream catch
+	const originalRpc = serviceImplCtor.prototype[rpcName];
+
+	serviceImplCtor.prototype[rpcName] = async function
+		( stream: ServerWriteableStream<any>
+		)
+	{
+		try {
+			const result = originalRpc.call(this, stream);
+			await result;
+		} catch(err) {
+			stream.emit('error', err);
+			if(stream.writable) stream.end();
+			throw err;
+		}
+
+		if(stream.writable) stream.end();
+	};
 }
 
 export function catchGrpcPromiseErrors<T>
