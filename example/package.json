@@ -1,0 +1,8 @@
+{
+  "name": "grpc-util-example",
+  "private": true,
+  "dependencies": {
+    "grpc": "^1.19.0",
+    "grpc-util": "../"
+  }
+}

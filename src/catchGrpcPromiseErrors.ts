@@ -1,10 +1,21 @@
 import * as grpc from 'grpc';
+import { isGrpcErrorStatus } from './status';
 
+class PromiseCatchErrorHandlerError extends Error implements grpc.ServiceError {
+	code = grpc.status.INTERNAL;
+	details: string = '';
+
+	constructor(message: string) {
+		super('Error handler exception: ' + message);
+		this.details = this.message;
+	}
+}
 
 function catchGrpcPromiseUnaryError<T>
 	( serviceDef: grpc.ServiceDefinition<T>
 	, rpcName: string
 	, serviceImplCtor: new (...args: any[])=> T
+	, errorHandler: (err: any) => void
 	)
 {
 	const originalRpc = serviceImplCtor.prototype[rpcName];
@@ -22,6 +33,19 @@ function catchGrpcPromiseUnaryError<T>
 			}
 
 			callbackInvoked = true;
+
+			if(err) {
+				try {
+					errorHandler(err);
+				} catch(errHandlerErr) {
+					err = new PromiseCatchErrorHandlerError(errHandlerErr.message);
+				}
+
+				// Prevent startBatch failed error
+				if(!isGrpcErrorStatus(err.code)) {
+					err.code = grpc.status.INTERNAL;
+				}
+			}
 
 			return originalCallback(err, response);
 		};
@@ -44,6 +68,7 @@ function catchGrpcPromiseBidiError<T>
 	( serviceDef: grpc.ServiceDefinition<T>
 	, rpcName: string
 	, serviceImplCtor: new (...args: any[]) => T
+	, errorHandler: (err: any) => void
 	)
 {
 	// @TODO: Implement bidi stream catch
@@ -53,6 +78,7 @@ function catchGrpcPromiseRequestStreamError<T>
 	( serviceDef: grpc.ServiceDefinition<T>
 	, rpcName: string
 	, serviceImplCtor: new (...args: any[])=> T
+	, errorHandler: (err: any) => void
 	)
 {
 	// @TODO: Implement request stream catch
@@ -62,6 +88,7 @@ function catchGrpcPromiseResponseStreamError<T>
 	( serviceDef: grpc.ServiceDefinition<T>
 	, rpcName: string
 	, serviceImplCtor: new (...args: any[])=> T
+	, errorHandler: (err: any) => void
 	)
 {
 	const originalRpc = serviceImplCtor.prototype[rpcName];
@@ -89,20 +116,25 @@ export function catchGrpcPromiseErrors<T>
 	, errorHandler?: (err: any) => void
 	)
 {
+
+	if(!errorHandler) {
+		errorHandler = () => {};
+	}
+
 	for(let rpcName in serviceDef) {
 		const rpcDef = serviceDef[rpcName];
 		
 		if(!rpcDef.requestStream && !rpcDef.responseStream) {
-			catchGrpcPromiseUnaryError(serviceDef, rpcName, serviceImplCtor);
+			catchGrpcPromiseUnaryError(serviceDef, rpcName, serviceImplCtor, errorHandler);
 		} else
 		if(rpcDef.requestStream && rpcDef.responseStream) {
-			catchGrpcPromiseBidiError(serviceDef, rpcName, serviceImplCtor);
+			catchGrpcPromiseBidiError(serviceDef, rpcName, serviceImplCtor, errorHandler);
 		} else
 		if(rpcDef.requestStream) {
-			catchGrpcPromiseRequestStreamError(serviceDef, rpcName, serviceImplCtor);
+			catchGrpcPromiseRequestStreamError(serviceDef, rpcName, serviceImplCtor, errorHandler);
 		} else
 		if(rpcDef.responseStream) {
-			catchGrpcPromiseResponseStreamError(serviceDef, rpcName, serviceImplCtor);
+			catchGrpcPromiseResponseStreamError(serviceDef, rpcName, serviceImplCtor, errorHandler);
 		}
 	}
 }
