@@ -2,7 +2,7 @@
   "name": "grpc-util-example",
   "private": true,
   "dependencies": {
-    "grpc": "^1.19.0",
+    "grpc": "^1.24.9",
     "grpc-util": "../"
   }
 }
